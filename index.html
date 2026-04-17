@@ -453,11 +453,8 @@
       <textarea id="note" name="note" placeholder="想到什么写什么，没有也没关系。"></textarea>
     </div>
 
-    <!-- FormSubmit hidden config -->
-    <input type="hidden" name="_subject" value="李律师 — AI 助理校准问卷回执">
-    <input type="hidden" name="_template" value="table">
-    <input type="hidden" name="_captcha" value="false">
-    <input type="hidden" name="_next" value="https://citibob.github.io/lawyer-ai-onboarding/thanks.html">
+    <!-- mailto fallback: no backend, no activation, no signup -->
+    <input type="hidden" name="_to" value="3983625@gmail.com">
 
     <div class="submit-area">
       <button type="submit" id="submitBtn" disabled>提交答案</button>
@@ -509,10 +506,74 @@
   form.addEventListener('change', updateProgress);
   updateProgress();
 
+  const Q_TITLES = {
+    q1: 'AI 工具用过哪些',
+    q2: '让 AI 起草借款合同最担心',
+    q3: '手机照片怎么传电脑',
+    q4: 'PDF 怎么处理',
+    q5: '飞书用过吗',
+    q6: '日常文件存哪里',
+    q7: '最想先解决哪类活'
+  };
+
+  function getAnswerText(name, q) {
+    const opts = q.querySelectorAll('input:checked');
+    if (!opts.length) return '（未答）';
+    const labels = Array.from(opts).map(inp => {
+      const tag = inp.closest('.option').querySelector('.label-tag').textContent.trim();
+      const txt = inp.closest('.option').querySelector('.label-text').textContent.replace(tag, '').trim();
+      return `${tag}. ${txt}`;
+    });
+    return labels.join(' + ');
+  }
+
+  function buildEmailBody() {
+    const lines = ['李律师答题回执', '-----------------------------'];
+    document.querySelectorAll('.question').forEach(q => {
+      const num = q.dataset.q;
+      const name = 'q' + num;
+      const title = Q_TITLES[name];
+      const ans = getAnswerText(name, q);
+      lines.push(`第 ${num} 题｜${title}`);
+      lines.push(`  → ${ans}`);
+      lines.push('');
+    });
+    const note = document.getElementById('note').value.trim();
+    if (note) {
+      lines.push('补充：');
+      lines.push(note);
+      lines.push('');
+    }
+    lines.push('-----------------------------');
+    lines.push('提交时间：' + new Date().toLocaleString('zh-CN'));
+    lines.push('（来自 https://citibob.github.io/lawyer-ai-onboarding/）');
+    return lines.join('\n');
+  }
+
   form.addEventListener('submit', function(e) {
-    if (submitBtn.disabled) { e.preventDefault(); return; }
+    e.preventDefault();
+    if (submitBtn.disabled) return;
+
+    const subject = '李律师 — AI 助理校准问卷回执';
+    const body = buildEmailBody();
+    const mailto = 'mailto:3983625@gmail.com'
+      + '?subject=' + encodeURIComponent(subject)
+      + '&body=' + encodeURIComponent(body);
+
     submitBtn.disabled = true;
-    submitBtn.textContent = '提交中…';
+    submitBtn.textContent = '正在打开邮件…';
+
+    // 拉起邮件客户端
+    window.location.href = mailto;
+
+    // 1.5 秒后显示感谢页（无论邮件客户端是否真的打开）
+    setTimeout(() => {
+      document.getElementById('form').style.display = 'none';
+      document.querySelector('.progress-wrap').style.display = 'none';
+      document.querySelector('.intro').style.display = 'none';
+      document.getElementById('thanks').classList.add('show');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 1500);
   });
 </script>
 </body>
