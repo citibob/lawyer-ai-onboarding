@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="format-detection" content="telephone=no">
+<title>李律师 — AI 助理校准小问卷</title>
+<style>
+  :root {
+    --primary: #1a3a6e;
+    --primary-light: #2a5298;
+    --accent: #d4af37;
+    --bg: #f8f6f1;
+    --card: #ffffff;
+    --text: #1a1a1a;
+    --muted: #6b6b6b;
+    --border: #e5e2dc;
+    --hover: #f0ece2;
+    --selected: #1a3a6e;
+    --selected-bg: #eef2f8;
+    --success: #2d7a3e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Source Han Sans CN", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .container { max-width: 720px; margin: 0 auto; padding: 24px 20px 80px; }
+
+  .header {
+    text-align: center;
+    padding: 32px 0 24px;
+    border-bottom: 2px solid var(--accent);
+    margin-bottom: 32px;
+  }
+  .header .badge {
+    display: inline-block;
+    background: var(--primary);
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+  .header h1 {
+    font-size: 26px;
+    color: var(--primary);
+    font-weight: 600;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+  .header p {
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  .intro {
+    background: var(--card);
+    border-left: 4px solid var(--accent);
+    padding: 20px 22px;
+    border-radius: 4px;
+    margin-bottom: 28px;
+    box-shadow: 0 2px 8px rgba(26, 58, 110, 0.04);
+  }
+  .intro p { margin-bottom: 8px; color: #333; }
+  .intro p:last-child { margin-bottom: 0; }
+  .intro .em { color: var(--primary); font-weight: 600; }
+
+  .progress-wrap {
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    padding: 12px 0;
+    z-index: 10;
+    margin-bottom: 12px;
+  }
+  .progress-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    width: 0%;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .progress-text {
+    text-align: right;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  .question {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 22px;
+    margin-bottom: 16px;
+    transition: box-shadow 0.2s, border-color 0.2s;
+  }
+  .question.answered {
+    border-color: var(--primary-light);
+    box-shadow: 0 2px 12px rgba(26, 58, 110, 0.08);
+  }
+  .question .num {
+    display: inline-block;
+    background: var(--primary);
+    color: #fff;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 28px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-right: 10px;
+    vertical-align: middle;
+  }
+  .question .title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+    display: inline;
+    vertical-align: middle;
+  }
+  .question .hint {
+    font-size: 12px;
+    color: var(--muted);
+    margin: 4px 0 16px 38px;
+  }
+  .options { margin-top: 14px; }
+  .option {
+    display: block;
+    background: #fafaf6;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.18s;
+    user-select: none;
+    position: relative;
+    padding-left: 48px;
+  }
+  .option:hover {
+    background: var(--hover);
+    border-color: var(--primary-light);
+  }
+  .option .marker {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--border);
+    border-radius: 50%;
+    background: #fff;
+    transition: all 0.2s;
+  }
+  .option.multi .marker { border-radius: 4px; }
+  .option .marker::after {
+    content: '';
+    position: absolute;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .option:not(.multi) .marker::after {
+    width: 10px; height: 10px;
+    background: var(--selected);
+    border-radius: 50%;
+    top: 4px; left: 4px;
+  }
+  .option.multi .marker::after {
+    width: 6px; height: 11px;
+    border-right: 2.5px solid #fff;
+    border-bottom: 2.5px solid #fff;
+    transform: rotate(45deg);
+    top: 1px; left: 6px;
+  }
+  .option input { position: absolute; opacity: 0; pointer-events: none; }
+  .option input:checked + .marker { border-color: var(--selected); background: #fff; }
+  .option input:checked + .marker::after { opacity: 1; }
+  .option.multi input:checked + .marker { background: var(--selected); border-color: var(--selected); }
+  .option input:checked ~ .label-text {
+    color: var(--selected);
+    font-weight: 500;
+  }
+  .option:has(input:checked) {
+    background: var(--selected-bg);
+    border-color: var(--selected);
+  }
+  .label-text {
+    font-size: 15px;
+    color: #333;
+    transition: color 0.2s;
+    display: block;
+  }
+  .label-tag {
+    display: inline-block;
+    background: var(--border);
+    color: var(--muted);
+    padding: 1px 7px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-right: 8px;
+    font-family: -apple-system, monospace;
+  }
+  .option:has(input:checked) .label-tag {
+    background: var(--selected);
+    color: #fff;
+  }
+
+  .extra {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px;
+    margin-bottom: 24px;
+  }
+  .extra label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+  .extra .hint {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  textarea {
+    width: 100%;
+    min-height: 90px;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font: inherit;
+    font-size: 15px;
+    resize: vertical;
+    background: #fafaf6;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: #fff;
+  }
+
+  .submit-area {
+    text-align: center;
+    margin-top: 24px;
+  }
+  button[type=submit] {
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    padding: 16px 48px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 16px rgba(26, 58, 110, 0.2);
+    min-width: 220px;
+  }
+  button[type=submit]:hover:not(:disabled) {
+    background: var(--primary-light);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(26, 58, 110, 0.3);
+  }
+  button[type=submit]:disabled {
+    background: #b0b0b0;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+  .submit-hint {
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .submit-hint .count { color: var(--primary); font-weight: 600; }
+
+  .thanks {
+    display: none;
+    text-align: center;
+    padding: 60px 20px;
+    background: var(--card);
+    border-radius: 16px;
+    border: 2px solid var(--success);
+    animation: fadeIn 0.6s;
+  }
+  .thanks.show { display: block; }
+  .thanks .check {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 24px;
+    background: var(--success);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .thanks .check::after {
+    content: '';
+    width: 22px;
+    height: 38px;
+    border-right: 4px solid #fff;
+    border-bottom: 4px solid #fff;
+    transform: rotate(45deg) translate(-2px, -4px);
+  }
+  .thanks h2 { font-size: 22px; color: var(--success); margin-bottom: 12px; }
+  .thanks p { color: var(--muted); font-size: 15px; max-width: 420px; margin: 0 auto 8px; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  @media (max-width: 480px) {
+    .container { padding: 16px 14px 60px; }
+    .header h1 { font-size: 22px; }
+    .question { padding: 20px 16px; }
+    .option { padding: 12px 14px 12px 44px; }
+    button[type=submit] { padding: 14px 32px; min-width: 180px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <span class="badge">CALIBRATION</span>
+    <h1>李律师 — AI 助理校准小问卷</h1>
+    <p>7 题 / 约 3 分钟 / 鼠标点点就行</p>
+  </div>
+
+  <div class="intro">
+    <p>李律师您好，</p>
+    <p>我是您的 <span class="em">AI 助理</span>。这份小问卷不是考您，是让我<span class="em">判断您熟到哪一步</span>，然后调整跟您配合的方式：</p>
+    <p>· 答得熟练 → 我直接进阶用法，少废话</p>
+    <p>· 答得保守 → 从最基础动作一步步陪您走，不堆术语</p>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-text"><span id="progressText">0 / 7 题</span></div>
+  </div>
+
+  <form id="form">
+    <!-- Q1 -->
+    <div class="question" data-q="1">
+      <span class="num">1</span><span class="title">AI 工具您用过哪些？</span>
+      <div class="options">
+        <label class="option"><input type="radio" name="q1" value="A" required><span class="marker"></span><span class="label-text"><span class="label-tag">A</span>没碰过</span></label>
+        <label class="option"><input type="radio" name="q1" value="B"><span class="marker"></span><span class="label-text"><span class="label-tag">B</span>听说过 ChatGPT / 豆包 / DeepSeek，没认真用</span></label>
+        <label class="option"><input type="radio" name="q1" value="C"><span class="marker"></span><span class="label-text"><span class="label-tag">C</span>偶尔用，写过朋友圈或简单文字</span></label>
+        <label class="option"><input type="radio" name="q1" value="D"><span class="marker"></span><span class="label-text"><span class="label-tag">D</span>比较熟，工作里也用过</span></label>
+      </div>
+    </div>
+
+    <!-- Q2 -->
+    <div class="question" data-q="2">
+      <span class="num">2</span><span class="title">让 AI 起草一份借款合同，您最担心的是？</span>
+      <div class="options">
+        <label class="option"><input type="radio" name="q2" value="A" required><span class="marker"></span><span class="label-text"><span class="label-tag">A</span>怕错条款 / 漏要件</span></label>
+        <label class="option"><input type="radio" name="q2" value="B"><span class="marker"></span><span class="label-text"><span class="label-tag">B</span>怕风格不像律师写的</span></label>
+        <label class="option"><input type="radio" name="q2" value="C"><span class="marker"></span><span class="label-text"><span class="label-tag">C</span>怕泄露客户信息</span></label>
+        <label class="option"><input type="radio" name="q2" value="D"><span class="marker"></span><span class="label-text"><span class="label-tag">D</span>都不太担心，反正我会自己审</span></label>
+      </div>
+    </div>
+
+    <!-- Q3 -->
+    <div class="question" data-q="3">
+      <span class="num">3</span><span class="title">手机上拍的合同照片，您平时怎么传到电脑？</span>
+      <div class="options">
+        <label class="option"><input type="radio" name="q3" value="A" required><span class="marker"></span><span class="label-text"><span class="label-tag">A</span>微信传给自己 → 电脑微信下载</span></label>
+        <label class="option"><input type="radio" name="q3" value="B"><span class="marker"></span><span class="label-text"><span class="label-tag">B</span>邮件发给自己</span></label>
+        <label class="option"><input type="radio" name="q3" value="C"><span class="marker"></span><span class="label-text"><span class="label-tag">C</span>数据线 / AirDrop</span></label>
+        <label class="option"><input type="radio" name="q3" value="D"><span class="marker"></span><span class="label-text"><span class="label-tag">D</span>不传，就在手机上看</span></label>
+      </div>
+    </div>
+
+    <!-- Q4 -->
+    <div class="question" data-q="4">
+      <span class="num">4</span><span class="title">PDF 文件您一般怎么处理？</span>
+      <div class="options">
+        <label class="option"><input type="radio" name="q4" value="A" required><span class="marker"></span><span class="label-text"><span class="label-tag">A</span>直接看</span></label>
+        <label class="option"><input type="radio" name="q4" value="B"><span class="marker"></span><span class="label-text"><span class="label-tag">B</span>打印出来看</span></label>
+        <label class="option"><input type="radio" name="q4" value="C"><span class="marker"></span><span class="label-text"><span class="label-tag">C</span>转 Word 编辑</span></label>
+        <label class="option"><input type="radio" name="q4" value="D"><span class="marker"></span><span class="label-text"><span class="label-tag">D</span>复制文字到别处</span></label>
+      </div>
+    </div>
+
+    <!-- Q5 -->
+    <div class="question" data-q="5">
+      <span class="num">5</span><span class="title">飞书您之前用过吗？</span>
+      <div class="options">
+        <label class="option"><input type="radio" name="q5" value="A" required><span class="marker"></span><span class="label-text"><span class="label-tag">A</span>没用过，第一次听说</span></label>
+        <label class="option"><input type="radio" name="q5" value="B"><span class="marker"></span><span class="label-text"><span class="label-tag">B</span>听说过，没注册</span></label>
+        <label class="option"><input type="radio" name="q5" value="C"><span class="marker"></span><span class="label-text"><span class="label-tag">C</span>注册过，没怎么用</span></label>
+        <label class="option"><input type="radio" name="q5" value="D"><span class="marker"></span><span class="label-text"><span class="label-tag">D</span>工作里在用</span></label>
+      </div>
+    </div>
+
+    <!-- Q6 -->
+    <div class="question" data-q="6">
+      <span class="num">6</span><span class="title">日常文件您主要靠什么存？</span>
+      <div class="options">
+        <label class="option"><input type="radio" name="q6" value="A" required><span class="marker"></span><span class="label-text"><span class="label-tag">A</span>电脑桌面 / 文件夹</span></label>
+        <label class="option"><input type="radio" name="q6" value="B"><span class="marker"></span><span class="label-text"><span class="label-tag">B</span>U 盘 / 移动硬盘</span></label>
+        <label class="option"><input type="radio" name="q6" value="C"><span class="marker"></span><span class="label-text"><span class="label-tag">C</span>云盘（百度网盘 / 腾讯微云 / iCloud）</span></label>
+        <label class="option"><input type="radio" name="q6" value="D"><span class="marker"></span><span class="label-text"><span class="label-tag">D</span>邮箱里翻</span></label>
+      </div>
+    </div>
+
+    <!-- Q7 -->
+    <div class="question" data-q="7">
+      <span class="num">7</span><span class="title">让 AI 帮您最想先解决哪类活？</span>
+      <div class="hint">可多选 — 选您最在意的 1–3 个</div>
+      <div class="options">
+        <label class="option multi"><input type="checkbox" name="q7" value="A"><span class="marker"></span><span class="label-text"><span class="label-tag">A</span>起草标准化文书（合同、起诉状）</span></label>
+        <label class="option multi"><input type="checkbox" name="q7" value="B"><span class="marker"></span><span class="label-text"><span class="label-tag">B</span>检索法条 / 判例</span></label>
+        <label class="option multi"><input type="checkbox" name="q7" value="C"><span class="marker"></span><span class="label-text"><span class="label-tag">C</span>整理一批材料（不良包、批量合同）</span></label>
+        <label class="option multi"><input type="checkbox" name="q7" value="D"><span class="marker"></span><span class="label-text"><span class="label-tag">D</span>案件全流程秘书（重大案件单独跟）</span></label>
+        <label class="option multi"><input type="checkbox" name="q7" value="E"><span class="marker"></span><span class="label-text"><span class="label-tag">E</span>写公开内容（自媒体、政府汇报、培训稿）</span></label>
+      </div>
+    </div>
+
+    <!-- Extra note -->
+    <div class="extra">
+      <label for="note">想补充一句话给 AI 助理？（可选）</label>
+      <div class="hint">比如"主要怕泄密"、"最缺时间在批量活上"、"只想先试试看"……</div>
+      <textarea id="note" name="note" placeholder="想到什么写什么，没有也没关系。"></textarea>
+    </div>
+
+    <!-- FormSubmit hidden config -->
+    <input type="hidden" name="_subject" value="李律师 — AI 助理校准问卷回执">
+    <input type="hidden" name="_template" value="table">
+    <input type="hidden" name="_captcha" value="false">
+    <input type="hidden" name="_next" value="https://3983625.github.io/lijia-calibration/thanks.html">
+
+    <div class="submit-area">
+      <button type="submit" id="submitBtn" disabled>提交答案</button>
+      <div class="submit-hint">已答 <span class="count" id="answeredCount">0</span> / 7 题（必答 6 题，第 7 题可多选）</div>
+    </div>
+  </form>
+
+  <div class="thanks" id="thanks">
+    <div class="check"></div>
+    <h2>已收到，感谢李律师</h2>
+    <p>我会按您的答案调整头一周的引导节奏。</p>
+    <p>您进飞书后，我会用您熟悉的方式开口。</p>
+  </div>
+
+  <div class="footer">
+    AI 助理 · 老鲍委托搭建 · 2026-04-17
+  </div>
+</div>
+
+<script>
+  const form = document.getElementById('form');
+  const submitBtn = document.getElementById('submitBtn');
+  const fill = document.getElementById('progressFill');
+  const progressText = document.getElementById('progressText');
+  const answeredCount = document.getElementById('answeredCount');
+
+  function updateProgress() {
+    const required = ['q1','q2','q3','q4','q5','q6'];
+    let done = 0;
+    required.forEach(name => {
+      if (form.querySelector(`input[name="${name}"]:checked`)) done++;
+    });
+    const q7Checked = form.querySelectorAll('input[name="q7"]:checked').length > 0;
+    const totalDone = done + (q7Checked ? 1 : 0);
+
+    fill.style.width = (totalDone / 7 * 100) + '%';
+    progressText.textContent = `${totalDone} / 7 题`;
+    answeredCount.textContent = totalDone;
+
+    submitBtn.disabled = done < 6;
+
+    document.querySelectorAll('.question').forEach(q => {
+      const qn = q.dataset.q;
+      const ans = q.querySelector(`input:checked`);
+      q.classList.toggle('answered', !!ans);
+    });
+  }
+
+  form.addEventListener('change', updateProgress);
+  updateProgress();
+
+  form.addEventListener('submit', function(e) {
+    if (submitBtn.disabled) { e.preventDefault(); return; }
+    submitBtn.disabled = true;
+    submitBtn.textContent = '提交中…';
+  });
+</script>
+</body>
+</html>
